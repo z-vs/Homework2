@@ -29,4 +29,10 @@ class TestVisualizer(unittest.TestCase):
         mock_run.return_value = MagicMock(stdout="false", returncode=0)
         self.assertFalse(is_git_repository('C:\\path\\to\\repository'))
 
+    @patch('subprocess.run')
+    def test_get_commits_for_file(self, mock_run):
+        mock_run.return_value = MagicMock(stdout="commit1\ncommit2\n", returncode=0)
+        commits = get_commits_for_file('C:\\path\\to\\repository', '0d84766dcf4426dcd416471f849249440898b65c')
+
+        self.assertEqual(commits, ['commit1', 'commit2'])
 
