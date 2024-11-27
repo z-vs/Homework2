@@ -44,3 +44,12 @@ class TestVisualizer(unittest.TestCase):
         self.assertIn("commit1 --> commit2", graph)
         self.assertIn("commit2 --> commit3", graph)
 
+    @patch('subprocess.run')
+    def test_generate_image_from_mermaid(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0)
+        generate_image_from_mermaid("graph TD\n commit1 --> commit2", 'output_image.png', 'mmdc')
+        mock_run.assert_called_with(['mmdc', '-i', 'graph.mmd', '-o', 'output_image.png'])
+
+
+if __name__ == '__main__':
+    unittest.main()
