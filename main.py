@@ -31,3 +31,7 @@ def generate_mermaid_graph(commits):
     return mermaid_graph
 
 
+def generate_image_from_mermaid(graph_description, output_image, graph_tool_path):
+    with open('graph.mmd', 'w') as f:
+        f.write(graph_description)
+    subprocess.run([graph_tool_path, '-i', 'graph.mmd', '-o', output_image])
