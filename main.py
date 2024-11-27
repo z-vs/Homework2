@@ -35,3 +35,25 @@ def generate_image_from_mermaid(graph_description, output_image, graph_tool_path
     with open('graph.mmd', 'w') as f:
         f.write(graph_description)
     subprocess.run([graph_tool_path, '-i', 'graph.mmd', '-o', output_image])
+
+
+def main():
+    config = read_config('config2.ini')
+    graph_tool = config['settings']['graph_tool']
+    repo_path = config['settings']['repository_path']
+    output_image = config['settings']['output_image']
+    file_hash = config['settings']['file_hash']
+    commits = get_commits_for_file(repo_path, file_hash)
+
+    if not commits:
+        print("No commits found with the specified file hash.")
+        return
+
+    graph_description = generate_mermaid_graph(commits)
+
+    generate_image_from_mermaid(graph_description, output_image, graph_tool)
+    print(f"Graph successfully generated and saved to {output_image}")
+
+
+if __name__ == "__main__":
+    main()
