@@ -24,3 +24,10 @@ def get_commits_for_file(repo_path, file_hash):
     return commits
 
 
+def generate_mermaid_graph(commits):
+    mermaid_graph = "graph TD\n"
+    for i, commit in enumerate(commits[:-1]):
+        mermaid_graph += f"    {commit} --> {commits[i+1]}\n"
+    return mermaid_graph
+
+
