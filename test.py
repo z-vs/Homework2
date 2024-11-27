@@ -21,3 +21,12 @@ class TestVisualizer(unittest.TestCase):
         self.assertEqual(config['settings']['output_image'], "C:\\path\\to\\output_image.png")
         self.assertEqual(config['settings']['file_hash'], "0d84766dcf4426dcd416471f849249440898b65c")
 
+    @patch('subprocess.run')
+    def test_is_git_repository(self, mock_run):
+        mock_run.return_value = MagicMock(stdout="true", returncode=0)
+        self.assertTrue(is_git_repository('C:\\path\\to\\repository'))
+
+        mock_run.return_value = MagicMock(stdout="false", returncode=0)
+        self.assertFalse(is_git_repository('C:\\path\\to\\repository'))
+
+
