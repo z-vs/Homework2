@@ -36,3 +36,11 @@ class TestVisualizer(unittest.TestCase):
 
         self.assertEqual(commits, ['commit1', 'commit2'])
 
+    def test_generate_mermaid_graph(self):
+        commits = ['commit1', 'commit2', 'commit3']
+        graph = generate_mermaid_graph(commits)
+
+        self.assertIn("graph TD", graph)
+        self.assertIn("commit1 --> commit2", graph)
+        self.assertIn("commit2 --> commit3", graph)
+
