@@ -51,7 +51,8 @@
 
 Вывод результата в виде сообщения об успешном выполнении.
 
-![image](https://github.com/user-attachments/assets/14c157ed-3e9c-45e2-a92d-a7d88d24e1fb)
+![image](https://github.com/user-attachments/assets/b91f331d-770e-42ba-a3b7-1d1d6bb2b61b)
+
 
 Граф в файле формата png.
 
