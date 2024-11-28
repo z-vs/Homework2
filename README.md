@@ -60,6 +60,7 @@
 
 ### Результаты прогона тестов
 
-![image](https://github.com/user-attachments/assets/c837bf53-c94a-4101-8438-8b81db078c2d)
+![image](https://github.com/user-attachments/assets/b54b63e7-d603-4f26-a27e-fcc03859e912)
+
 
 
