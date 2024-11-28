@@ -1,59 +1,80 @@
-import subprocess
 import configparser
+import git
+import subprocess
+import os
 
 
-def read_config(config_path):
+def load_config(config_path):
     config = configparser.ConfigParser()
     config.read(config_path)
-    return config
+
+    graph_tool = config['settings']['graph_tool']
+    repository_path = config['settings']['repository_path']
+    output_image = config['settings']['output_image']
+    file_path = config['settings']['file_path']
+
+    return {
+        'graph_tool': graph_tool,
+        'repository_path': repository_path,
+        'output_image': output_image,
+        'file_path': file_path
+    }
 
 
-def is_git_repository(repo_path):
-    command = f"git -C {repo_path} rev-parse --is-inside-work-tree"
-    try:
-        result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)
-        return result.stdout.strip() == "true"
-    except subprocess.CalledProcessError:
-        return False
-
-
-def get_commits_for_file(repo_path, file_hash):
-    command = f"git -C {repo_path} log --pretty=format:'%H' --name-only --diff-filter=AM {file_hash}"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    commits = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+def get_commits_with_file(repository_path, file_path):
+    repo = git.Repo(repository_path)
+    commits = []
+    for commit in repo.iter_commits(paths=file_path):
+        commits.append(commit)
     return commits
 
 
+
 def generate_mermaid_graph(commits):
-    mermaid_graph = "graph TD\n"
-    for i, commit in enumerate(commits[:-1]):
-        mermaid_graph += f"    {commit} --> {commits[i+1]}\n"
+    mermaid_graph = 'graph LR\n'
+    commit_map = {}
+
+    for commit in commits:
+        commit_map[commit.hexsha] = commit
+
+    for commit in commits:
+        for parent in commit.parents:
+            if parent.hexsha not in commit_map:
+                commit_map[parent.hexsha] = parent
+            mermaid_graph += f'    {parent.hexsha} --> {commit.hexsha}\n'
+
     return mermaid_graph
 
 
-def generate_image_from_mermaid(graph_description, output_image, graph_tool_path):
-    with open('graph.mmd', 'w') as f:
+def generate_graph_image(graph_tool, graph_description, output_image):
+    with open("temp.mmd", "w") as f:
         f.write(graph_description)
-    subprocess.run([graph_tool_path, '-i', 'graph.mmd', '-o', output_image])
+
+    command = [graph_tool, "-i", "temp.mmd", "-o", output_image]
+    subprocess.run(command, check=True)
+
+    os.remove("temp.mmd")
 
 
-def main():
-    config = read_config('config2.ini')
-    graph_tool = config['settings']['graph_tool']
-    repo_path = config['settings']['repository_path']
-    output_image = config['settings']['output_image']
-    file_hash = config['settings']['file_hash']
-    commits = get_commits_for_file(repo_path, file_hash)
+def main(config_path):
+    config = load_config(config_path)
+
+    commits = get_commits_with_file(config['repository_path'], config['file_path'])
 
     if not commits:
-        print("No commits found with the specified file hash.")
+        print("Не найдено коммитов с данным файлом.")
         return
 
     graph_description = generate_mermaid_graph(commits)
 
-    generate_image_from_mermaid(graph_description, output_image, graph_tool)
-    print(f"Graph successfully generated and saved to {output_image}")
+    try:
+        generate_graph_image(config['graph_tool'], graph_description, config['output_image'])
+        print(f"Граф зависимостей успешно сгенерирован и сохранен в {config['output_image']}")
+    except Exception as e:
+        print(f"Ошибка при генерации графа: {e}")
+
 
 
 if __name__ == "__main__":
-    main()
+    config_path = "config2.ini"
+    main(config_path)
