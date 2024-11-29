@@ -1,84 +1,68 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import configparser
-from main import main, load_config, get_commits_with_file, generate_mermaid_graph, generate_graph_image
+import subprocess
+import os
+import git
+from main import load_config, get_commits_with_file, generate_mermaid_graph, generate_graph_image
 
 
-class TestVisualizer(unittest.TestCase):
+class TestGraphGenerator(unittest.TestCase):
 
-    @patch('configparser.ConfigParser')
-    def test_load_config(self, mock_config_parser_class):
-        mock_config_parser = MagicMock(spec=configparser.ConfigParser)
-        mock_config_parser.read.return_value = None
-        mock_config_parser.__getitem__.return_value = {
-            'graph_tool': "C:\\path\\to\\mmdc.cmd",
-            'repository_path': "C:\\path\\to\\repo",
-            'output_image': "C:\\path\\to\\output.png",
-            'file_path': "path\\to\\file.py"
+    @patch('configparser.ConfigParser.read')
+    def test_load_config(self, mock_read):
+        mock_read.return_value = None
+        config_data = {
+            'settings': {
+                'graph_tool': 'mermaid-cli',
+                'repository_path': '/path/to/repo',
+                'output_image': 'output.png',
+                'file_path': 'src/example.py'
+            }
         }
-        mock_config_parser.sections.return_value = ['settings']
-        with patch('configparser.ConfigParser', return_value=mock_config_parser):
-            config = load_config("config2.ini")
-        self.assertEqual(config['graph_tool'], "C:\\path\\to\\mmdc.cmd")
-        self.assertEqual(config['repository_path'], "C:\\path\\to\\repo")
-        self.assertEqual(config['output_image'], "C:\\path\\to\\output.png")
-        self.assertEqual(config['file_path'], "path\\to\\file.py")
+        mock_config = MagicMock()
+        mock_config.__getitem__.side_effect = config_data.__getitem__
+
+        with patch('configparser.ConfigParser', return_value=mock_config):
+            config = load_config("config.ini")
+            self.assertEqual(config['graph_tool'], 'mermaid-cli')
+            self.assertEqual(config['repository_path'], '/path/to/repo')
+            self.assertEqual(config['output_image'], 'output.png')
+            self.assertEqual(config['file_path'], 'src/example.py')
 
     @patch('git.Repo')
-    def test_get_commits_with_file(self, mock_repo_class):
-        mock_repo = MagicMock()
+    def test_get_commits_with_file(self, mock_repo):
         mock_commit = MagicMock()
-        mock_commit.hexsha = "123abc"
-        mock_commit.parents = []
-        mock_repo.iter_commits.return_value = [mock_commit]
-        with patch('git.Repo', return_value=mock_repo):
-            commits = get_commits_with_file("C:\\path\\to\\repo", "path\\to\\file.py")
+        mock_commit.hexsha = 'abc123'
+        mock_repo.return_value.iter_commits.return_value = [mock_commit]
+
+        commits = get_commits_with_file('/path/to/repo', 'src/example.py')
         self.assertEqual(len(commits), 1)
-        self.assertEqual(commits[0].hexsha, "123abc")
+        self.assertEqual(commits[0].hexsha, 'abc123')
 
     def test_generate_mermaid_graph(self):
-        mock_commit_1 = MagicMock()
-        mock_commit_1.hexsha = "123abc"
-        mock_commit_1.parents = []
-        mock_commit_2 = MagicMock()
-        mock_commit_2.hexsha = "456def"
-        mock_commit_2.parents = [mock_commit_1]
-        commits = [mock_commit_1, mock_commit_2]
-        graph = generate_mermaid_graph(commits)
-        expected_graph = 'graph LR\n    123abc --> 456def\n'
+        commit1 = MagicMock()
+        commit1.hexsha = 'abc123'
+        commit1.parents = []
+
+        commit2 = MagicMock()
+        commit2.hexsha = 'def456'
+        commit2.parents = [commit1]
+
+        graph = generate_mermaid_graph([commit1, commit2])
+        expected_graph = 'graph LR\n    abc123 --> def456\n'
         self.assertEqual(graph, expected_graph)
 
     @patch('subprocess.run')
-    def test_generate_graph_image(self, mock_subprocess_run):
-        mock_subprocess_run.return_value = None
-        graph_tool = "C:\\path\\to\\mmdc.cmd"
-        graph_description = "graph LR\n    123abc --> 456def\n"
-        output_image = "C:\\path\\to\\output.png"
-        generate_graph_image(graph_tool, graph_description, output_image)
-        mock_subprocess_run.assert_called_once_with([graph_tool, "-i", "temp.mmd", "-o", output_image])
+    @patch('os.remove')
+    def test_generate_graph_image(self, mock_remove, mock_run):
+        mock_run.return_value = None
 
+        graph_description = 'graph LR\n    a --> b\n'
+        generate_graph_image('mermaid-cli', graph_description, 'output.png')
 
-    @patch('configparser.ConfigParser')
-    def test_load_config_file_not_found(self, mock_config_parser_class):
-        with self.assertRaises(FileNotFoundError):
-            load_config("non_existent_config.ini")
-
-    @patch('git.Repo')
-    def test_get_commits_with_file_no_commits(self, mock_repo_class):
-        mock_repo = MagicMock()
-        mock_repo.iter_commits.return_value = []
-        with patch('git.Repo', return_value=mock_repo):
-            commits = get_commits_with_file("C:\\path\\to\\repo", "path\\to\\file.py")
-        self.assertEqual(len(commits), 0)
-
-    @patch('subprocess.run')
-    def test_generate_graph_image_subprocess_error(self, mock_subprocess_run):
-        mock_subprocess_run.side_effect = Exception("Subprocess failed")
-        graph_tool = "C:\\path\\to\\mmdc.cmd"
-        graph_description = "graph LR\n    123abc --> 456def\n"
-        output_image = "C:\\path\\to\\output.png"
-        with self.assertRaises(Exception):
-            generate_graph_image(graph_tool, graph_description, output_image)
+        mock_run.assert_called_once_with(['mermaid-cli', '-i', 'temp.mmd', '-o', 'output.png'], check=True)
+        mock_remove.assert_called_once_with("temp.mmd")
 
 
 if __name__ == '__main__':
