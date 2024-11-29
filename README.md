@@ -56,7 +56,7 @@
 
 Граф в файле формата png.
 
-![graph](https://github.com/user-attachments/assets/277f610d-6a75-46bc-b3e9-5be152a0bec0)
+![image](https://github.com/user-attachments/assets/dabc0a84-c409-451b-a0db-dcd1674da04f)
 
 ### Результаты прогона тестов
 
